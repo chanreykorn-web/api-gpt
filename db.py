@@ -1,15 +1,19 @@
 import mysql.connector
+from mysql.connector import Error
+from dotenv import load_dotenv
+import os
 
-def get_connection():
+load_dotenv()  # Load .env file
+
+def get_db_connection():
     try:
         conn = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='',
-            database='api-gpt'
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            database=os.getenv("DB_NAME")
         )
-        print("Connection successful.")
         return conn
-    except mysql.connector.Error as err:
-        print(f"Connection failed: {err}")
+    except Error as e:
+        print("Error connecting to database:", e)
         return None

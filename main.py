@@ -1,11 +1,15 @@
-import uvicorn
 from fastapi import FastAPI
+from routers import routerUsers
+from routers import routerAuth
+from routers import routerRole
 
 app = FastAPI()
 
-@app.get("/")
-async def root():
-    return {"message": "Hello, API-GPT!"}
+app.include_router(routerUsers.router)
+app.include_router(routerAuth.router)
+app.include_router(routerRole.router)
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="174.16.10.143", port=8000, reload=True)
+
+@app.get("/")
+def root():
+    return {"message": "API is running"}
