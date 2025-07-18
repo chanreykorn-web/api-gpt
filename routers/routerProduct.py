@@ -1,18 +1,15 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request
 from controllers import controllerProduct
 
-router = APIRouter(prefix="/products", tags=["Products"])
+router = APIRouter(prefix="/products", tags=["products"])
 
 @router.get("/")
 def get_all():
     return controllerProduct.get_all_products()
 
 @router.get("/{product_id}")
-def get_by_id(product_id: int):
-    product = controllerProduct.get_product_by_id(product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product
+def get_one(product_id: int):
+    return controllerProduct.get_product_by_id(product_id)
 
 @router.post("/create")
 async def create(request: Request):

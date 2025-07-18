@@ -1,31 +1,39 @@
-from fastapi import APIRouter, Request, HTTPException, Header, Depends
-from controllers import controllerAuth
-from auth import create_access_token, decode_token
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from utils.jwt_handler import create_access_token
+from controllers.controllerUsers import get_user_from_db
+from security import pwd_context
+from fastapi.security import OAuth2PasswordRequestForm
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+
+router = APIRouter(prefix="/api/auth")
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+from controllers.controllerUsers import get_user_from_db, get_user_permissions
 
 @router.post("/login")
-async def login(request: Request):
-    data = await request.json()
-    username = data.get("username")
-    password = data.get("password")
-
-    user = controllerAuth.login_user(username, password)
-    if not user:
+def login(request: LoginRequest):
+    user = get_user_from_db(request.username)
+    if not user or not pwd_context.verify(request.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token({"sub": user["username"], "id": user["id"]})
-    return {"access_token": token}
+    permissions = get_user_permissions(user["id"])
 
-def get_current_user(authorization: str = Header(...)):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid token format")
-    token = authorization.split(" ")[1]
-    payload = decode_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return payload
+    access_token = create_access_token({
+        "sub": user["username"],
+        "role": user["role"],
+        "user_id": user["id"],
+        "permissions": permissions
+    })
 
-@router.get("/me")
-def get_profile(user: dict = Depends(get_current_user)):
-    return {"user": user}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user["role"],
+        "user_id": user["id"],
+        "permissions": permissions
+    }
+

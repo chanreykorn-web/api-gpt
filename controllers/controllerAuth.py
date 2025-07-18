@@ -1,17 +1,62 @@
+from fastapi import HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from passlib.context import CryptContext
 from db import get_db_connection
-from auth import verify_password
+import jwt
+import datetime
+import os
 
-def login_user(username: str, password: str):
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+hashed_password = pwd_context.hash("123456")
+print(hashed_password)
+
+SECRET_KEY = os.getenv("JWT_SECRET", "your_jwt_secret")
+ALGORITHM = "HS256"
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def register_user(username: str, password: str):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-    user = cursor.fetchone()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+    if cursor.fetchone():
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    hashed_pw = hash_password(password)
+    cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_pw))
+    conn.commit()
+    cursor.close()
     conn.close()
 
-    if not user:
-        return None
+    return {"message": "User registered successfully"}
 
-    if not verify_password(password, user["password"]):
-        return None
+def login_user(form_data: OAuth2PasswordRequestForm):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
-    return user
+    cursor.execute("SELECT * FROM users WHERE username = %s", (form_data.username,))
+    user = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if not user or not verify_password(form_data.password, user["password"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    token = create_access_token({"sub": user["username"]})
+    return {"access_token": token, "token_type": "bearer"}

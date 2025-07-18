@@ -1,9 +1,11 @@
+# db.py
 import mysql.connector
 from mysql.connector import Error
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # Load .env file
+# Load environment variables from .env
+load_dotenv()
 
 def get_db_connection():
     try:
@@ -11,9 +13,10 @@ def get_db_connection():
             host=os.getenv("DB_HOST"),
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME")
+            database=os.getenv("DB_NAME"),
+            auth_plugin='mysql_native_password'
         )
         return conn
     except Error as e:
-        print("Error connecting to database:", e)
+        print("❌ Error connecting to database:", e)
         return None

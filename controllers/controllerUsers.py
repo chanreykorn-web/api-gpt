@@ -1,100 +1,143 @@
+from fastapi import HTTPException
 from db import get_db_connection
-from auth import hash_password
+from security import hash_password
+from security import hash_password, verify_password
 import datetime
 
 def get_all_users():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM users")
-    rows = cursor.fetchall()
+    users = cursor.fetchall()
     conn.close()
-    return rows
+    return users
 
 def get_user_by_id(user_id: int):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-    row = cursor.fetchone()
+    user = cursor.fetchone()
     conn.close()
-    return row
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 def create_user(data: dict):
     conn = get_db_connection()
     cursor = conn.cursor()
-    now = datetime.datetime.now()
-
-    # ✅ Hash the password before inserting
-    hashed_password = hash_password(data.get("password")) 
-
-    query = """
-        INSERT INTO users 
-        (username, password, email, role_id, status, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    sql = """
+    INSERT INTO users (username, password, email, role_id, status, created_at, updated_at)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
     """
-    values = (
-        data.get("username"),
-        hashed_password,
-        data.get("email"),
-        data.get("role_id"),
-        data.get("status", 1),
+    now = datetime.datetime.now()
+    hashed_pw = hash_password(data['password'])
+    cursor.execute(sql, (
+        data['username'],
+        hashed_pw,
+        data['email'],
+        data.get('role_id'),
+        data.get('status', 1),
         now,
         now
-    )
-
-    cursor.execute(query, values)
+    ))
     conn.commit()
-    user_id = cursor.lastrowid
+    new_id = cursor.lastrowid
     conn.close()
-    return { "id": user_id, **data, "password": "hashed" }  # optionally hide real password in response
+    return {"id": new_id}
+
+def authenticate_user(username: str, password: str):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    if not verify_password(password, user['password']):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    return user
 
 def update_user(user_id: int, data: dict):
     conn = get_db_connection()
     cursor = conn.cursor()
-    now = datetime.datetime.now()
-
-    # Get existing user (to preserve old password if not updating it)
-    cursor.execute("SELECT password FROM users WHERE id = %s", (user_id,))
-    existing = cursor.fetchone()
-    if not existing:
-        conn.close()
-        return {"error": "User not found"}
-
-    # ✅ Check if password is being updated
-    raw_password = data.get("password")
-    if raw_password:
-        hashed_password = hash_password(raw_password)
-    else:
-        hashed_password = existing[0]  # Keep existing hashed password
-
-    query = """
-        UPDATE users SET
-        username=%s, password=%s, email=%s, role_id=%s, status=%s, updated_at=%s
-        WHERE id = %s
+    sql = """
+    UPDATE users
+    SET username=%s, email=%s, role_id=%s, status=%s, updated_at=%s
+    WHERE id = %s
     """
-    values = (
-        data.get("username"),
-        hashed_password,
-        data.get("email"),
-        data.get("role_id"),
-        data.get("status", 1),
-        now,
+    cursor.execute(sql, (
+        data['username'],
+        data.get('email'),  # fixed here
+        data.get('role_id'),
+        data['status'],
+        datetime.datetime.now(),
         user_id
-    )
-
-    cursor.execute(query, values)
+    ))
     conn.commit()
     conn.close()
-
-    # Optional: mask password in return
-    return {"id": user_id, **data, "password": "updated (if provided)"}
+    return {"message": "User updated successfully"}
 
 def delete_user(user_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    query = "UPDATE users SET status = 1 WHERE id = %s"
-    cursor.execute(query, (user_id,))
+    cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
     conn.commit()
     conn.close()
+    return {"message": "User deleted"}
 
-    return {"message": f"User {user_id} user delete success!"}
+
+def get_permissions_for_role(role_id: int) -> list[str]:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT p.name
+        FROM permissions p
+        JOIN role_permissions rp ON p.id = rp.permission_id
+        WHERE rp.role_id = %s
+    """, (role_id,))
+    perms = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return perms
+
+
+from db import get_db_connection
+
+def get_user_from_db(username: str):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT u.id, u.username, u.password, r.name AS role
+        FROM users u
+        JOIN role r ON u.role_id = r.id
+        WHERE u.username = %s
+    """
+    cursor.execute(query, (username,))
+    user = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return user
+
+
+def get_user_permissions(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    sql = """
+        SELECT p.name AS permission
+        FROM permission p
+        JOIN role_permission rp ON rp.permission_id = p.id
+        JOIN users u ON u.role_id = rp.role_id
+        WHERE u.id = %s
+    """
+    cursor.execute(sql, (user_id,))
+    permissions = [row['permission'] for row in cursor.fetchall()]
+
+    cursor.close()
+    conn.close()
+    return permissions
