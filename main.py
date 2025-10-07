@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 
 # Router imports
 from routers import (
@@ -28,16 +30,18 @@ from routers import (
 app = FastAPI()
 
 origins = [
-    "http://localhost:5173",  # Vite dev server
-    # Add other allowed origins here
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    'http://172.28.96.1:5173',
+    "http://10.90.46.216:5173"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Or ["*"] to allow all during dev
+    allow_origins=origins,        # Or ["*"] to allow all
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],          # Allow all HTTP methods
+    allow_headers=["*"],          # Allow all headers
 )
 
 # Include routers
@@ -61,6 +65,15 @@ app.include_router(routerWarranty.router)
 app.include_router(routerPermission.router)
 app.include_router(routerRolePermission.router)
 app.include_router(routerSpicification.router)
+app.include_router(routerGallery.router)
+app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+
+# Include your gallery API router
+
+app.include_router(routerGallery.router, prefix="/api/gallery", tags=["Gallery"])
+
+
 
 @app.get("/")
 def root():

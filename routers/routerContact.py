@@ -24,3 +24,8 @@ async def update(contact_id: int, request: Request):
 @router.delete("/delete/{contact_id}")
 async def delete(contact_id: int):
     return controller.delete_contact(contact_id)
+
+
+@router.get("/")
+async def get_all_public():
+    return controller.get_all_categories_public()

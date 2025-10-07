@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, UploadFile, File, Form, Request
 from controllers import controllerGallery
 
-router = APIRouter(prefix="/gallery", tags=["Gallery"])
+router = APIRouter(prefix="/api/gallery", tags=["Gallery"])
 
 @router.post("/create")
-async def create(request: Request):
-    data = await request.json()
-    return controllerGallery.create_gallery(data)
+async def create_gallery(
+    file: UploadFile = File(...),
+    user_id: int = Form(...),
+    image_id: int = Form(None)
+):
+    return controllerGallery.create_gallery(file, user_id, image_id)
 
 @router.get("/")
 async def get_all():
@@ -16,11 +19,11 @@ async def get_all():
 async def get_by_id(gallery_id: int):
     return controllerGallery.get_gallery_by_id(gallery_id)
 
-@router.put("/update/{gallery_id}")
-async def update(gallery_id: int, request: Request):
+@router.put("/{gallery_id}")
+async def update_gallery(gallery_id: int, request: Request):
     data = await request.json()
     return controllerGallery.update_gallery(gallery_id, data)
 
-@router.put("/delete/{gallery_id}")
-async def delete(gallery_id: int):
+@router.delete("/{gallery_id}")
+async def delete_gallery(gallery_id: int):
     return controllerGallery.delete_gallery(gallery_id)

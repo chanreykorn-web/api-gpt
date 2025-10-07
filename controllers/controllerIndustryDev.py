@@ -4,7 +4,7 @@ from db import get_db_connection
 def get_all_industries():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM industry_development WHERE status = 1")
+    cursor.execute("SELECT * FROM industry_development")
     rows = cursor.fetchall()
     conn.close()
     return rows
@@ -35,12 +35,13 @@ def create_industry(data: dict):
 
     now = datetime.datetime.now()
     cursor.execute("""
-        INSERT INTO industry_development (year, title, image_id, user_id, status, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO industry_development (year, title, image_id, path, user_id, status, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         data.get("year"),
         data.get("title"),
         data.get("image_id"),
+        data.get("path"),
         data.get("user_id"),
         data.get("status", 1),
         now,
@@ -67,13 +68,14 @@ def update_industry(industry_id: int, data: dict):
 
     cursor.execute("""
         UPDATE industry_development
-        SET year = %s, title = %s, image_id = %s, user_id = %s, status = %s,
+        SET year = %s, title = %s, image_id = %s, path = %s, user_id = %s, status = %s,
             created_at = %s, updated_at = %s
         WHERE id = %s
     """, (
         data.get("year"),
         data.get("title"),
         data.get("image_id"),
+        data.get("path"),
         data.get("user_id"),
         data.get("status", 1),
         created_at,
@@ -92,3 +94,12 @@ def delete_industry(industry_id: int):
     conn.commit()
     conn.close()
     return { "message": f"Industry development {industry_id} soft-deleted (status = 0)" }
+
+
+def get_all_industries_public():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM industry_development WHERE status = 1")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows

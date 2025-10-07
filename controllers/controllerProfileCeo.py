@@ -30,10 +30,11 @@ def create_ceo(data: dict):
 
     now = datetime.datetime.now()
     cursor.execute("""
-        INSERT INTO profile_ceo (image_id, name, detail, user_id, status, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO profile_ceo (image_id, path, name, detail, user_id, status, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         data.get("image_id"),
+        data.get("path"),
         data.get("name"),
         data.get("detail"),
         data.get("user_id"),
@@ -61,10 +62,11 @@ def update_ceo(ceo_id: int, data: dict):
     updated_at = datetime.datetime.now()
 
     cursor.execute("""
-        UPDATE profile_ceo SET image_id=%s, name=%s, detail=%s, user_id=%s, status=%s, created_at=%s, updated_at=%s
+        UPDATE profile_ceo SET image_id=%s, path=%s, name=%s, detail=%s, user_id=%s, status=%s, created_at=%s, updated_at=%s
         WHERE id=%s
     """, (
         data.get("image_id"),
+        data.get("path"),
         data.get("name"),
         data.get("detail"),
         data.get("user_id"),
@@ -85,3 +87,12 @@ def delete_ceo(ceo_id: int):
     conn.commit()
     conn.close()
     return {"message": f"Profile CEO {ceo_id} soft-deleted (status = 0)"}
+
+
+def get_all_ceos_public():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM profile_ceo WHERE status = 1")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows

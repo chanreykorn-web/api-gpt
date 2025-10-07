@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 import controllers.controllerProfileCeo as controller
 
-router = APIRouter(prefix="/ceo", tags=["Profile CEO"])
+router = APIRouter(prefix="/api/ceo", tags=["Profile CEO"])
 
 @router.get("/")
 async def get_all():
@@ -24,3 +24,8 @@ async def update(ceo_id: int, request: Request):
 @router.put("/delete/{ceo_id}")
 async def delete(ceo_id: int):
     return controller.delete_ceo(ceo_id)
+
+
+@router.get("/all/public")
+async def get_all_public():
+    return controller.get_all_ceos_public()

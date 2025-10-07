@@ -1,3 +1,4 @@
+import email
 from fastapi import HTTPException
 from db import get_db_connection
 from security import hash_password
@@ -45,18 +46,18 @@ def create_user(data: dict):
     conn.close()
     return {"id": new_id}
 
-def authenticate_user(username: str, password: str):
+def authenticate_user(email: str, password: str):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
     user = cursor.fetchone()
     conn.close()
 
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if not verify_password(password, user['password']):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     return user
 
@@ -83,10 +84,15 @@ def update_user(user_id: int, data: dict):
 def delete_user(user_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+    sql = """
+    UPDATE users
+    SET status = 0
+    WHERE id = %s
+    """
+    cursor.execute(sql, (user_id,))
     conn.commit()
     conn.close()
-    return {"message": "User deleted"}
+    return {"message": "User deactivated (status=0)"}
 
 
 def get_permissions_for_role(role_id: int) -> list[str]:
@@ -105,17 +111,17 @@ def get_permissions_for_role(role_id: int) -> list[str]:
 
 from db import get_db_connection
 
-def get_user_from_db(username: str):
+def get_user_from_db(email: str):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
     query = """
-        SELECT u.id, u.username, u.password, r.name AS role
+        SELECT u.id, u.email, u.password, r.name AS role
         FROM users u
         JOIN role r ON u.role_id = r.id
-        WHERE u.username = %s
+        WHERE u.email = %s
     """
-    cursor.execute(query, (username,))
+    cursor.execute(query, (email,))
     user = cursor.fetchone()
 
     cursor.close()
@@ -128,16 +134,29 @@ def get_user_permissions(user_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    sql = """
+    # Permissions from role
+    sql_role = """
         SELECT p.name AS permission
         FROM permission p
         JOIN role_permission rp ON rp.permission_id = p.id
         JOIN users u ON u.role_id = rp.role_id
         WHERE u.id = %s
     """
-    cursor.execute(sql, (user_id,))
-    permissions = [row['permission'] for row in cursor.fetchall()]
+    cursor.execute(sql_role, (user_id,))
+    role_permissions = [row['permission'] for row in cursor.fetchall()]
+
+    # Permissions assigned directly to user
+    sql_user = """
+        SELECT p.name AS permission
+        FROM permission p
+        JOIN user_permission up ON up.permission_id = p.id
+        WHERE up.user_id = %s
+    """
+    cursor.execute(sql_user, (user_id,))
+    user_permissions = [row['permission'] for row in cursor.fetchall()]
 
     cursor.close()
     conn.close()
-    return permissions
+
+    # Merge and remove duplicates
+    return list(set(role_permissions + user_permissions))

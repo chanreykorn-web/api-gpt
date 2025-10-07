@@ -5,7 +5,7 @@ from db import get_db_connection
 def get_all_welcome():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM welcome WHERE status = 1")
+    cursor.execute("SELECT * FROM welcome")
     rows = cursor.fetchall()
     conn.close()
     return rows
@@ -43,13 +43,13 @@ def create_welcome(data: dict):
     now = datetime.datetime.now()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO welcome (title, detail, image_id, banner_id, user_id, status, created_at, updated_at)
+        INSERT INTO welcome (title, detail, image_id, path, user_id, status, created_at, updated_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         data.get("title"),
         data.get("detail"),
         data.get("image_id"),
-        data.get("banner_id"),
+        data.get("path"),
         data.get("user_id"),
         data.get("status", 1),
         now,
@@ -77,14 +77,14 @@ def update_welcome(welcome_id: int, data: dict):
 
     cursor.execute("""
         UPDATE welcome
-        SET title = %s, detail = %s, image_id = %s, banner_id = %s, user_id = %s,
+        SET title = %s, detail = %s, image_id = %s, path = %s, user_id = %s,
             status = %s, created_at = %s, updated_at = %s
         WHERE id = %s
     """, (
         data.get("title"),
         data.get("detail"),
         data.get("image_id"),
-        data.get("banner_id"),
+        data.get("path"),
         data.get("user_id"),
         data.get("status", 1),
         created_at,
@@ -103,3 +103,12 @@ def delete_welcome(welcome_id: int):
     conn.commit()
     conn.close()
     return {"message": f"Welcome {welcome_id} soft-deleted (status = 0)"}
+
+
+def get_all_welcome_public():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM welcome WHERE status = 1")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows

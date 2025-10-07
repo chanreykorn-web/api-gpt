@@ -30,13 +30,13 @@ def create_spicification(data: dict):
     now = datetime.datetime.now()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO spicification (category, category_sub, title, dis, user_id, status, created_at, updated_at)
+        INSERT INTO spicification (category, category_sub, title, descriptions, user_id, status, created_at, updated_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         data.get("category"),
         data.get("category_sub"),
         data.get("title"),
-        data.get("dis"),
+        data.get("descriptions"),
         data.get("user_id"),
         data.get("status", 1),
         now,
@@ -63,13 +63,13 @@ def update_spicification(spicification_id: int, data: dict):
     updated_at = datetime.datetime.now()
 
     cursor.execute("""
-        UPDATE spicification SET category = %s, category_sub = %s, title = %s, dis = %s, user_id = %s, 
+        UPDATE spicification SET category = %s, category_sub = %s, title = %s, descriptions = %s, user_id = %s, 
         status = %s, created_at = %s, updated_at = %s WHERE id = %s
     """, (
         data.get("category"),
         data.get("category_sub"),
         data.get("title"),
-        data.get("dis"),
+        data.get("descriptions"),
         data.get("user_id"),
         data.get("status", 1),
         created_at,
