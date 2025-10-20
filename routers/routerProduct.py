@@ -12,51 +12,51 @@ def require_permission(permission: str):
     return permission_checker
 
 @router.get("/")
-def get_all(user=Depends(require_permission("Read Products"))):
-    return controllerProduct.get_all_products()
+async def get_all(user=Depends(require_permission("Read Products"))):
+    return await controllerProduct.get_all_products()
 
 @router.get("/{product_id}")
-def get_one(product_id: int, user=Depends(require_permission("Read Products"))):
-    return controllerProduct.get_product_by_id(product_id)
+async def get_one(product_id: int, user=Depends(require_permission("Read Products"))):
+    return await controllerProduct.get_product_by_id(product_id)
 
 @router.post("/create")
 async def create(request: Request, user=Depends(require_permission("Create Products"))):
     data = await request.json()
-    return controllerProduct.create_product(data)
+    return await controllerProduct.create_product(data)
 
 @router.put("/update/{product_id}")
 async def update(product_id: int, request: Request, user=Depends(require_permission("Update Products"))):
     data = await request.json()
-    return controllerProduct.update_product(product_id, data)
+    return await controllerProduct.update_product(product_id, data)
 
-@router.put("/delete/{product_id}")
-def delete(product_id: int, user=Depends(require_permission("Delete Products"))):
-    return controllerProduct.delete_product(product_id)
+@router.delete("/delete/{product_id}")
+async def delete(product_id: int, user=Depends(require_permission("Delete Products"))):
+    return await controllerProduct.delete_product(product_id)
 
 
 @router.get("/all/public")
-def get_all_public():
-    return controllerProduct.get_all_products_public()
+async def get_all_public():
+    return await controllerProduct.get_all_products_public()
 
 @router.get("/all/public/{product_id}")
-def get_all_public_id(product_id: int):
-    return controllerProduct.get_product_by_id(product_id)
+async def get_all_public_id(product_id: int):
+    return await controllerProduct.get_product_by_id(product_id)
 
 
 @router.get("/category/{category}/all/public")
-def get_all_products_by_category_public(category: str):
-    return controllerProduct.get_all_products_by_category_public(category)
+async def get_all_products_by_category_public(category: str):
+    return await controllerProduct.get_all_products_by_category_public(category)
 
 @router.get("/new/all/public")
-def get_all_new_products_public():
-    return controllerProduct.get_all_new_products_public()
+async def get_all_new_products_public():
+    return await controllerProduct.get_all_new_products_public()
 
 @router.put("/update/product/category/{product_id}")
 async def update_category(product_id: int, request: Request, user=Depends(require_permission("Update Products"))):
     data = await request.json()
-    return controllerProduct.update_product_category(product_id, data)
+    return await controllerProduct.update_product_category(product_id, data)
 
 @router.put("/update/product/new/{product_id}")
 async def update_new(product_id: int, request: Request, user=Depends(require_permission("Update Products"))):
     data = await request.json()
-    return controllerProduct.update_product_new(product_id, data)
+    return await controllerProduct.update_product_new(product_id, data)

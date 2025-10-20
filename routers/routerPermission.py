@@ -12,23 +12,23 @@ def require_permission(permission: str):
     return permission_checker
 
 @router.get("/")
-def get_all(user=Depends(require_permission("Read Permissions"))):
-    return controllerPermission.get_all_permissions()
+async def get_all(user=Depends(require_permission("Read Permissions"))):
+    return await controllerPermission.get_all_permissions()
 
 @router.get("/{permission_id}")
-def get_one(permission_id: int, user=Depends(require_permission("Read Permissions"))):
-    return controllerPermission.get_permission_by_id(permission_id)
+async def get_one(permission_id: int, user=Depends(require_permission("Read Permissions"))):
+    return await controllerPermission.get_permission_by_id(permission_id)
 
 @router.post("/create")
 async def create(request: Request, user=Depends(require_permission("Create Permissions"))):
     data = await request.json()
-    return controllerPermission.create_permission(data)
+    return await controllerPermission.create_permission(data)
 
 @router.put("/update/{permission_id}")
 async def update(permission_id: int, request: Request, user=Depends(require_permission("Update Permissions"))):
     data = await request.json()
-    return controllerPermission.update_permission(permission_id, data)
+    return await controllerPermission.update_permission(permission_id, data)
 
 @router.put("/delete/{permission_id}")
-def delete(permission_id: int, user=Depends(require_permission("Delete Permissions"))):
-    return controllerPermission.delete_permission(permission_id)
+async def delete(permission_id: int, user=Depends(require_permission("Delete Permissions"))):
+    return await controllerPermission.delete_permission(permission_id)

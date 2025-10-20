@@ -11,24 +11,39 @@ def require_permission(permission: str):
         return user
     return permission_checker
 
+# -------------------------------
+# Get all users
+# -------------------------------
 @router.get("/")
-def get_all(user=Depends(require_permission("Read Users"))):
-    return user_ctrl.get_all_users()
+async def get_all(user=Depends(require_permission("Read Users"))):
+    return await user_ctrl.get_all_users()
 
+# -------------------------------
+# Get one user by ID
+# -------------------------------
 @router.get("/{user_id}")
-def get_one(user_id: int, user=Depends(require_permission("Read Users"))):
-    return user_ctrl.get_user_by_id(user_id)
+async def get_one(user_id: int, user=Depends(require_permission("Read Users"))):
+    return await user_ctrl.get_user_by_id(user_id)
 
+# -------------------------------
+# Create a new user
+# -------------------------------
 @router.post("/create")
 async def create(request: Request, user=Depends(require_permission("Create Users"))):
-    data = await request.json()  # await here!
-    return user_ctrl.create_user(data)
+    data = await request.json()
+    return await user_ctrl.create_user(data)
 
+# -------------------------------
+# Update an existing user
+# -------------------------------
 @router.put("/update/{user_id}")
 async def update(user_id: int, request: Request, user=Depends(require_permission("Update Users"))):
-    data = await request.json()   # <-- await here
-    return user_ctrl.update_user(user_id, data)
+    data = await request.json()
+    return await user_ctrl.update_user(user_id, data)
 
+# -------------------------------
+# Soft delete user
+# -------------------------------
 @router.put("/delete/{user_id}")
-def delete(user_id: int, user=Depends(require_permission("Delete Users"))):
-    return user_ctrl.delete_user(user_id)
+async def delete(user_id: int, user=Depends(require_permission("Delete Users"))):
+    return await user_ctrl.delete_user(user_id)

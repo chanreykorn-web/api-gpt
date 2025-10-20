@@ -4,6 +4,7 @@ from db import get_db_connection
 
 router = APIRouter(prefix="/api/role-permissions", tags=["role_permissions"])
 
+# Permission checker
 def require_permission(permission: str):
     def permission_checker(user=Depends(get_current_user)):
         if permission not in user.get("permissions", []):
@@ -11,11 +12,12 @@ def require_permission(permission: str):
         return user
     return permission_checker
 
+
 @router.put("/assign/{user_id}")
-async def assign_permissions_to_user(
+def assign_permissions_to_user(
     user_id: int, request: Request, user=Depends(require_permission("Update Role Permissions"))
 ):
-    data = await request.json()
+    data = request.json() if hasattr(request, "json") else {}
     permission_ids = data.get("permission_id", [])
 
     if not permission_ids:
@@ -36,11 +38,9 @@ async def assign_permissions_to_user(
             )
 
         conn.commit()
-
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
     finally:
         cursor.close()
         conn.close()
@@ -72,4 +72,3 @@ def get_user_permissions(user_id: int, user=Depends(get_current_user)):
         conn.close()
 
     return all_permissions
-
