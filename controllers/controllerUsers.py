@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from security import hash_password, verify_password
 from db import get_db_connection  # this should return an aiomysql connection
 import aiomysql
+import pymysql
 
 # ===============================
 # Users
@@ -122,7 +123,7 @@ async def get_user_from_db(email: str):
     conn.close()
     return user
 
-async def get_user_permissions(user_id: int):
+async def get_user_permissions(user_id):
     sql_role = """
         SELECT p.name AS permission
         FROM permission p
@@ -138,11 +139,17 @@ async def get_user_permissions(user_id: int):
     """
     conn = await get_db_connection()
     async with conn.cursor(aiomysql.DictCursor) as cursor:
-        await cursor.execute(sql_role, (user_id,))
-        role_permissions = [row['permission'] for row in await cursor.fetchall()]
+        try:
+            await cursor.execute(sql_role, (user_id,))
+            role_permissions = [row['permission'] for row in await cursor.fetchall()]
 
-        await cursor.execute(sql_user, (user_id,))
-        user_permissions = [row['permission'] for row in await cursor.fetchall()]
+            await cursor.execute(sql_user, (user_id,))
+            user_permissions = [row['permission'] for row in await cursor.fetchall()]
+        except pymysql.err.ProgrammingError as e:
+            # If table doesn't exist (errno 1146), return empty permissions instead of crashing
+            if getattr(e, "args", [None])[0] == 1146:
+                return []
+            raise
 
     conn.close()
     return list(set(role_permissions + user_permissions))

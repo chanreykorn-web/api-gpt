@@ -6,7 +6,13 @@ router = APIRouter(prefix="/api/users", tags=["Users"])
 
 def require_permission(permission: str):
     def permission_checker(user=Depends(get_current_user)):
-        if permission not in user["permissions"]:
+        try:
+            # be defensive: make sure `user` is a dict and has a list-like "permissions"
+            perms = user.get("permissions", []) if isinstance(user, dict) else []
+        except Exception:
+            # If anything unexpected occurs, deny access instead of crashing
+            raise HTTPException(status_code=403, detail="Forbidden")
+        if permission not in perms:
             raise HTTPException(status_code=403, detail="Forbidden")
         return user
     return permission_checker
