@@ -1,14 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 import controllers.controllerUsers as user_ctrl
 from utils.jwt_handler import get_current_user
+import inspect
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
 def require_permission(permission: str):
-    def permission_checker(user=Depends(get_current_user)):
+    async def permission_checker(user=Depends(get_current_user)):
         try:
-            # be defensive: make sure `user` is a dict and has a list-like "permissions"
-            perms = user.get("permissions", []) if isinstance(user, dict) else []
+            # if dependency returned a coroutine for some reason, await it
+            if inspect.isawaitable(user):
+                user = await user
+            # be defensive: support dict or object with .permissions
+            if isinstance(user, dict):
+                perms = user.get("permissions", []) or []
+            elif hasattr(user, "permissions"):
+                perms = getattr(user, "permissions") or []
+                if inspect.isawaitable(perms):
+                    perms = await perms
+            else:
+                perms = []
+            # ensure perms is iterable
+            if not hasattr(perms, "__iter__"):
+                perms = []
         except Exception:
             # If anything unexpected occurs, deny access instead of crashing
             raise HTTPException(status_code=403, detail="Forbidden")
